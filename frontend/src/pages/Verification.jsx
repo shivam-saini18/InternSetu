@@ -1,14 +1,61 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Verification() {
+  const navigate = useNavigate();
+
   const [documentType, setDocumentType] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    setSubmitted(true);
+    const candidateId = localStorage.getItem("candidateId");
+
+    if (!candidateId) {
+      setError("Candidate profile not found.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/candidates/${candidateId}/verification`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            status: "Verified"
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Verification failed"
+        );
+      }
+
+      setSubmitted(true);
+
+      setTimeout(() => {
+        navigate("/candidate/dashboard");
+      }, 1200);
+    } catch (err) {
+      console.error("Verification error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -30,16 +77,22 @@ function Verification() {
           </p>
         </div>
 
+        {error && (
+          <div className="error-box">
+            {error}
+          </div>
+        )}
+
         {submitted ? (
           <div className="success-box">
-            <h3>Verification submitted</h3>
+            <h3>Verification successful</h3>
 
             <p>
-              Your verification request has been submitted for review.
+              Your profile has been verified successfully.
             </p>
 
             <span className="status">
-              Pending Verification
+              Verified
             </span>
           </div>
         ) : (
@@ -56,7 +109,9 @@ function Verification() {
               >
                 <option value="">Select document</option>
                 <option value="student-id">Student ID</option>
-                <option value="government-id">Government ID</option>
+                <option value="government-id">
+                  Government ID
+                </option>
               </select>
             </label>
 
@@ -83,8 +138,10 @@ function Verification() {
               </p>
             </div>
 
-            <button type="submit">
-              Submit for Verification
+            <button type="submit" disabled={loading}>
+              {loading
+                ? "Verifying..."
+                : "Submit for Verification"}
             </button>
           </form>
         )}
