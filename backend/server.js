@@ -10,11 +10,57 @@ require("./src/config/authSchema");
 
 const app = express();
 
+/* =========================
+   CORS
+========================= */
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(
+    process.env.FRONTEND_URL.replace(/\/$/, "")
+  );
+}
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: function (origin, callback) {
+      // Allow requests without an Origin header
+      // such as health checks/server-side tools.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      const normalizedOrigin = origin.replace(/\/$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      console.warn(
+        `CORS blocked origin: ${origin}`
+      );
+
+      return callback(
+        new Error("CORS origin not allowed")
+      );
+    },
+    methods: [
+      "GET",
+      "POST",
+      "PATCH",
+      "PUT",
+      "DELETE",
+      "OPTIONS",
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+    ],
   })
 );
 
@@ -121,7 +167,10 @@ app.use((req, res) => {
 ========================= */
 
 app.use((error, req, res, next) => {
-  console.error("Unhandled server error:", error);
+  console.error(
+    "Unhandled server error:",
+    error
+  );
 
   res.status(500).json({
     success: false,
@@ -140,8 +189,16 @@ app.listen(PORT, () => {
   console.log("========================================");
   console.log("        INTERNSETU BACKEND");
   console.log("========================================");
-  console.log(`API: http://localhost:${PORT}`);
-  console.log(`Health: http://localhost:${PORT}/api/health`);
+  console.log(`Port: ${PORT}`);
+  console.log(
+    `Health: /api/health`
+  );
+  console.log(
+    `Frontend URL: ${
+      process.env.FRONTEND_URL ||
+      "localhost development"
+    }`
+  );
   console.log("Authentication schema: loaded");
   console.log("Candidate routes: loaded");
   console.log("Internship routes: loaded");

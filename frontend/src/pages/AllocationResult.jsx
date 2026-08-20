@@ -79,7 +79,9 @@ function AllocationResult() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const adminSession = isAdminSession();
+  const adminSession =
+  isAdminSession() ||
+  searchParams.get("from") === "admin";
 
   useEffect(() => {
     let cancelled = false;
